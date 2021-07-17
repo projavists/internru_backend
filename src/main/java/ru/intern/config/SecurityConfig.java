@@ -10,18 +10,19 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.CharacterEncodingFilter;
 import ru.intern.repository.UserRepository;
 import ru.intern.security.AuthProvider;
 import ru.intern.security.UserAuthoritiesService;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import ru.intern.security.jwt.JwtFilter;
 
 /**
  * @author Kir
@@ -32,6 +33,10 @@ import java.security.MessageDigest;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(SecurityConfig.class);
 
+    @Autowired
+    private JwtFilter jwtFilter;
+
+
     @Bean
     public SessionRegistry sessionRegistry() {
         return new SessionRegistryImpl();
@@ -40,34 +45,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     //sha256
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new PasswordEncoder() {
-            @Override
-            public String encode(CharSequence rawPassword) {
-                try {
-                    MessageDigest md = MessageDigest.getInstance("MD5");
-                    md.reset();
-
-                    byte[] buffer = rawPassword.toString().getBytes(StandardCharsets.UTF_8);
-
-                    md.update(buffer);
-                    byte[] digest = md.digest();
-
-                    String hexStr = "";
-                    for (byte aDigest : digest) {
-                        hexStr += Integer.toString((aDigest & 0xff) + 0x100, 16).substring(1);
-                    }
-                    return hexStr.toUpperCase();
-                } catch (Exception e) {
-                    LOG.error("can't encode password", e);
-                    return "";
-                }
-            }
-
-            @Override
-            public boolean matches(CharSequence rawPassword, String encodedPassword) {
-                return this.encode(rawPassword).equals(encodedPassword != null ? encodedPassword.toUpperCase() : "");
-            }
-        };
+        return new BCryptPasswordEncoder();
     }
 
 
@@ -98,15 +76,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         CharacterEncodingFilter encodingFilter = new CharacterEncodingFilter();
         encodingFilter.setEncoding("UTF-8");
         encodingFilter.setForceEncoding(true);
-    //TODO логаут убрать
         http.exceptionHandling()
                 .authenticationEntryPoint((httpServletRequest, httpServletResponse, e) ->
                         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"));
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         http.addFilterBefore(encodingFilter, CsrfFilter.class)
                 .authorizeRequests()
-                .antMatchers("/api/login*", "/api/logout").permitAll()
+                .antMatchers("/api/logout").hasRole("USER")
+                .antMatchers("/api/login*", "/api/register*").permitAll()
                 .antMatchers("/api/**").authenticated()
                 .and()
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin()
                 .and()
                 .logout().logoutRequestMatcher(new AntPathRequestMatcher("/logout")).logoutSuccessUrl("/login?logout").permitAll()

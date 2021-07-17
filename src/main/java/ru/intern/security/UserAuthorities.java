@@ -1,9 +1,12 @@
 package ru.intern.security;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import ru.intern.entity.UserEntity;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * @author Kir
@@ -14,10 +17,20 @@ public class UserAuthorities implements UserDetails {
     private Long id;
     private String login;
     private String password;
+    private Collection<? extends GrantedAuthority> grantedAuthorities;
+
+    public static UserAuthorities fromUserEntityToUserAuthorities(UserEntity userEntity) {
+        UserAuthorities c = new UserAuthorities();
+        c.login = userEntity.getLogin();
+        c.password = userEntity.getPassword();
+        c.grantedAuthorities = Collections.singletonList(new SimpleGrantedAuthority(userEntity.getRole().getName()));
+        return c;
+    }
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return null;
+        return grantedAuthorities;
     }
 
     public void setId(Long id) {

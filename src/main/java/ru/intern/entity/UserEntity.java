@@ -1,4 +1,4 @@
-package ru.intern.bean;
+package ru.intern.entity;
 
 import javax.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,11 +11,10 @@ import lombok.NoArgsConstructor;
  */
 
 @Entity
-@Data
 @Table(name = "user", schema = "public")
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserBean {
+public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long user_id;
@@ -26,6 +25,9 @@ public class UserBean {
     @Column(name = "password")
     private String password;
 
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private RoleEntity roleEntity;
 
     public Long getId() {
         return user_id;
@@ -49,5 +51,14 @@ public class UserBean {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+
+    public RoleEntity getRole() {
+        return roleEntity;
+    }
+
+    public void setRole(RoleEntity roleEntity) {
+        this.roleEntity = roleEntity;
     }
 }

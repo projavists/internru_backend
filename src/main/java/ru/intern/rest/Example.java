@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.RestController;
  * Created on 07.07.2021
  */
 @RestController
-@Api(value = "/api", description = "swagger example")
+@Api(value = "/api/example", description = "swagger example")
 public class Example {
 
-    @GetMapping
+    @GetMapping("/api/example")
     public String get(){
         return "Hello World!";
     }

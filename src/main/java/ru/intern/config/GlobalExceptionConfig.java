@@ -21,7 +21,6 @@ import ru.intern.entity.ApiError;
 @ControllerAdvice
 public class GlobalExceptionConfig extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionConfig.class);
-
     @ExceptionHandler(ValidationException.class)
     protected ResponseEntity<Object> handle(ValidationException ex) {
         return new ResponseEntity<>(getError(HttpStatus.BAD_REQUEST, ex), new HttpHeaders(), HttpStatus.BAD_REQUEST);

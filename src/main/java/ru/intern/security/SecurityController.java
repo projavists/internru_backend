@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import ru.intern.repository.UserRepository;
+import ru.intern.entity.UserEntity;
+import ru.intern.security.jwt.JwtProvider;
+import ru.intern.service.UserService;
 
 /**
  * @author Kir
@@ -18,29 +20,46 @@ import ru.intern.repository.UserRepository;
 @Api(description = "Аутентификация и авторизация")
 @RestControllerAdvice
 @RequestMapping
+@RestController
 public class SecurityController {
     @Autowired
-    private UserRepository userRepository;
+    private JwtProvider jwtProvider;
+    @Autowired
+    private UserService userService;
+
 
     private final static Logger LOG = LoggerFactory.getLogger(SecurityController.class);
 
+    @ApiOperation(value = "Регистрация нового пользователя")
+    @PostMapping("/api/register")
+    public String register(@RequestBody LoginPair loginPair) {
+        UserEntity user = new UserEntity();
+        System.out.println();
+        user.setLogin(loginPair.getUsername());
+        user.setPassword(loginPair.getPassword());
+        userService.save(user);
+        return "user successfully saved";
+    }
+
+
     @ApiOperation(value = "Завершение сессии пользователя")
     @GetMapping(value = "/api/logout")
-    public String login(HttpServletRequest request, HttpServletResponse response, Authentication auth) {
-        System.out.println(userRepository.findUserByLogin("admin"));
+    //TODO
+    public String logout(HttpServletRequest request, HttpServletResponse response, Authentication auth) {
         return "logout";
     }
 
 
-    @ApiOperation(value = "Проверка имени и пароля входа, получение сведений о ролях и подразделении пользователя", response = LoginResponse.class)
+    @ApiOperation(value = "Проверка имени и пароля входа, получение сведений о ролях", response = LoginResponse.class)
     @RequestMapping(value = "/api/login", method = RequestMethod.POST, produces = {"application/json"})
     public LoginResponse login(@RequestBody LoginPair login, HttpServletRequest request, HttpServletResponse response) {
         if (login == null || login.getUsername() == null) {
             response.setStatus(HttpServletResponse.SC_NOT_ACCEPTABLE);
             return new LoginResponse(response.getStatus(), "Unauthorized");
         }
-        System.out.println(userRepository.findUserByLogin(login.getUsername()));
-        return new LoginResponse(HttpServletResponse.SC_OK, "Authorized");
+        UserEntity userEntity = userService.findByLoginAndPassword(login.getUsername(), login.getPassword());
+        String token = jwtProvider.generateToken(userEntity.getLogin());
+        return new LoginResponse(HttpServletResponse.SC_OK, token);
     }
 
 
