@@ -58,7 +58,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public AuthProvider tcmkAuthProvider(UserAuthoritiesService userAuthoritiesService) {
+    public AuthProvider authProvider(UserAuthoritiesService userAuthoritiesService) {
         return new AuthProvider(userAuthoritiesService, passwordEncoder());
     }
 
@@ -82,7 +82,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         http.addFilterBefore(encodingFilter, CsrfFilter.class)
                 .authorizeRequests()
-                .antMatchers("/api/logout").hasRole("USER")
+                .antMatchers("/api/logout").hasAnyRole("USER", "ADMIN")
                 .antMatchers("/api/login*", "/api/register*").permitAll()
                 .antMatchers("/api/**").authenticated()
                 .and()

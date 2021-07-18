@@ -1,6 +1,7 @@
 package ru.intern.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.intern.entity.RoleEntity;
@@ -29,12 +30,16 @@ public class UserService {
         return userEntityRepository.save(user);
     }
 
+    public UserEntity findByLogin(String login) {
+        return userEntityRepository.findUserByLogin(login);
+    }
+
     public UserEntity findByLoginAndPassword(String username, String password) {
         UserEntity userEntity = userEntityRepository.findUserByLogin(username);
         if (userEntity != null) {
             if (passwordEncoder.matches(password, userEntity.getPassword()))
                 return userEntity;
         }
-        return null;
+        throw new BadCredentialsException("wrong login or password");
     }
 }

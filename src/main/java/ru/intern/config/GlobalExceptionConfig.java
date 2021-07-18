@@ -1,17 +1,20 @@
 package ru.intern.config;
 
-import javax.xml.bind.ValidationException;
+import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.MethodNotAllowedException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import ru.intern.entity.ApiError;
+import ru.intern.entity.ResponseError;
+import sun.plugin.dom.exception.InvalidStateException;
 
 /**
  * @author Kir
@@ -21,30 +24,37 @@ import ru.intern.entity.ApiError;
 @ControllerAdvice
 public class GlobalExceptionConfig extends ResponseEntityExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionConfig.class);
-    @ExceptionHandler(ValidationException.class)
-    protected ResponseEntity<Object> handle(ValidationException ex) {
-        return new ResponseEntity<>(getError(HttpStatus.BAD_REQUEST, ex), new HttpHeaders(), HttpStatus.BAD_REQUEST);
+
+    @ExceptionHandler(BadCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ResponseEntity<String> handle(BadCredentialsException exception, HttpServletRequest webRequest) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.toString());
+
     }
 
-    @ExceptionHandler
-    protected ResponseEntity<Object> handle(Exception ex, WebRequest request) {
-        try {
-            return super.handleException(ex, request);
-        } catch (Exception e) {
-            return handleExceptionInternal(ex, null, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
-        }
+    @ExceptionHandler(MethodNotAllowedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ResponseEntity<String> handle(MethodNotAllowedException exception, HttpServletRequest webRequest) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.toString());
+
     }
 
-    @Override
-    protected ResponseEntity<Object> handleExceptionInternal(Exception ex, @Nullable Object body, HttpHeaders headers, HttpStatus status, WebRequest request) {
-        if (HttpStatus.Series.SERVER_ERROR == status.series()) {
-            log.error("Unexpected error.", ex);
-        }
-        return new ResponseEntity<>(getError(status, ex), headers, status);
+    @ExceptionHandler(InvalidStateException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ResponseEntity<String> handle(InvalidStateException exception, HttpServletRequest webRequest) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.toString());
+
     }
 
-    private ApiError getError(HttpStatus status, Exception ex) {
-        return ApiError.ApiErrorBuilder.anApiError().status(status).message(ex.getMessage()).build();
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<String> handleAllUncaughtException(
+            Exception exception,
+            WebRequest request) {
+        log.error("Unknown error occurred", exception);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exception.toString());
     }
+
 
 }

@@ -25,6 +25,6 @@ public class UserAuthoritiesService implements UserDetailsService {
         UserEntity ub = userRepository.findUserByLogin(login);
         if (ub != null)
             return UserAuthorities.fromUserEntityToUserAuthorities(ub);
-        throw new UsernameNotFoundException(null);
+        throw new UsernameNotFoundException("username not found");
     }
 }

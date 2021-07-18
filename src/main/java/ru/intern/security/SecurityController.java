@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import ru.intern.entity.UserEntity;
@@ -32,20 +33,23 @@ public class SecurityController {
 
     @ApiOperation(value = "Регистрация нового пользователя")
     @PostMapping("/api/register")
-    public String register(@RequestBody LoginPair loginPair) {
-        UserEntity user = new UserEntity();
-        System.out.println();
-        user.setLogin(loginPair.getUsername());
-        user.setPassword(loginPair.getPassword());
-        userService.save(user);
-        return "user successfully saved";
+    public LoginResponse register(HttpServletRequest request, HttpServletResponse response, @RequestBody LoginPair loginPair) {
+        if (userService.findByLogin(loginPair.getUsername()) == null) {
+            UserEntity user = new UserEntity();
+            user.setLogin(loginPair.getUsername());
+            user.setPassword(loginPair.getPassword());
+            userService.save(user);
+            return new LoginResponse(HttpServletResponse.SC_OK, "user successfully saved");
+        }
+        throw new BadCredentialsException("login already exists");
     }
 
 
     @ApiOperation(value = "Завершение сессии пользователя")
     @GetMapping(value = "/api/logout")
-    //TODO
+
     public String logout(HttpServletRequest request, HttpServletResponse response, Authentication auth) {
+        //TODO black list???
         return "logout";
     }
 
@@ -53,11 +57,11 @@ public class SecurityController {
     @ApiOperation(value = "Проверка имени и пароля входа, получение сведений о ролях", response = LoginResponse.class)
     @RequestMapping(value = "/api/login", method = RequestMethod.POST, produces = {"application/json"})
     public LoginResponse login(@RequestBody LoginPair login, HttpServletRequest request, HttpServletResponse response) {
-        if (login == null || login.getUsername() == null) {
+        UserEntity userEntity = userService.findByLoginAndPassword(login.getUsername(), login.getPassword());
+        if (login.getUsername() == null || userEntity == null) {
             response.setStatus(HttpServletResponse.SC_NOT_ACCEPTABLE);
             return new LoginResponse(response.getStatus(), "Unauthorized");
         }
-        UserEntity userEntity = userService.findByLoginAndPassword(login.getUsername(), login.getPassword());
         String token = jwtProvider.generateToken(userEntity.getLogin());
         return new LoginResponse(HttpServletResponse.SC_OK, token);
     }
@@ -65,19 +69,19 @@ public class SecurityController {
 
     public static class LoginResponse {
         private final int code;
-        private final String message;
+        private final String token;
 
-        LoginResponse(int code, String message) {
+        LoginResponse(int code, String token) {
             this.code = code;
-            this.message = message;
+            this.token = token;
         }
 
         public int getCode() {
             return code;
         }
 
-        public String getMessage() {
-            return message;
+        public String getToken() {
+            return token;
         }
 
     }
@@ -90,16 +94,9 @@ public class SecurityController {
             return username;
         }
 
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
         public String getPassword() {
             return password;
         }
 
-        public void setPassword(String password) {
-            this.password = password;
-        }
     }
 }

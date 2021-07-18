@@ -5,6 +5,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +15,7 @@ import ru.intern.security.UserAuthorities;
 import ru.intern.security.UserAuthoritiesService;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * @author Kir
@@ -33,15 +35,22 @@ public class JwtFilter extends GenericFilterBean {
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        logger.info("do filter...");
         String token = getTokenFromRequest((HttpServletRequest) servletRequest);
-        if (token != null && jwtProvider.validateToken(token)) {
-            String userLogin = jwtProvider.getLoginFromToken(token);
-            UserAuthorities userAuthorities = userAuthoritiesService.loadUserByUsername(userLogin);
-            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userAuthorities, null, userAuthorities.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        }
-        filterChain.doFilter(servletRequest, servletResponse);
+        if (token != null) {
+            if (jwtProvider.validateToken(token)) {
+                String userLogin = jwtProvider.getLoginFromToken(token);
+                UserAuthorities userAuthorities = userAuthoritiesService.loadUserByUsername(userLogin);
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userAuthorities, null, userAuthorities.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                filterChain.doFilter(servletRequest, servletResponse);
+            } else {
+                HttpServletResponse resp = (HttpServletResponse) servletResponse;
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                PrintWriter pw = resp.getWriter();
+                pw.write("invalid token");
+            }
+        } else filterChain.doFilter(servletRequest, servletResponse);
+
     }
 
     private String getTokenFromRequest(HttpServletRequest request) {

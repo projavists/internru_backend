@@ -26,6 +26,7 @@ public class AuthProvider implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String username = authentication.getName();
         String password = (String) authentication.getCredentials();
+
         if (password == null) {
             throw new BadCredentialsException("Password is empty.");
         }
