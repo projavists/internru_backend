@@ -19,7 +19,6 @@ import ru.intern.service.UserService;
  * Created on 16.07.2021
  */
 @Api(description = "Аутентификация и авторизация")
-@RestControllerAdvice
 @RequestMapping
 @RestController
 public class SecurityController {

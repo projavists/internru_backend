@@ -27,9 +27,8 @@ public class GlobalExceptionConfig extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ResponseEntity<String> handle(BadCredentialsException exception, HttpServletRequest webRequest) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.toString());
-
+    public String handle(BadCredentialsException exception, HttpServletRequest webRequest) {
+        return "hui";
     }
 
     @ExceptionHandler(MethodNotAllowedException.class)
